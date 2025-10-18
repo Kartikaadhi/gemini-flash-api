@@ -15,7 +15,7 @@ const upload = multer();
 // middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static("public")); // letakkan di atas biar langsung kebaca saat akses /
+app.use(express.static("public")); 
 
 /**
  * Inisialisasi koneksi ke Gemini API
@@ -28,10 +28,18 @@ const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 app.post('/api/generate', async (req, res) => {
   try {
     const { prompt } = req.body;
-    const model = ai.getGenerativeModel({ model: 'models/gemini-2.5-flash' });
+    // model + konfigurasi parameter (temperature, top_p, top_k)
+    const model = ai.getGenerativeModel({
+      model: "gemini-2.5-flash", // model terbaru
+      generationConfig: {
+        temperature: 0.7, // makin tinggi → makin kreatif
+        top_p: 0.9,       // kontrol variasi probabilitas kata
+        top_k: 40,        // batas kandidat kata yang dipilih
+      },
+    });
     const result = await model.generateContent(prompt);
 
-    // ambil teks dengan cara aman
+    // ambil teks 
     const text = result?.response?.candidates?.[0]?.content?.parts?.[0]?.text || "Gagal mengambil respons.";
 
     res.json({ output: text });
@@ -51,9 +59,18 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     const file = req.file;
     const { prompt } = req.body;
 
-    if (!file) return res.status(400).json({ error: 'File tidak ditemukan' });
+     if (!file) {
+      return res.status(400).json({ error: "File tidak ditemukan" });
+    }
 
-    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = ai.getGenerativeModel({
+      model: "gemini-2.5-flash",
+      generationConfig: {
+        temperature: 0.7,
+        top_p: 0.9,
+        top_k: 40,
+      },
+    });
     const result = await model.generateContent([
       { inlineData: { mimeType: file.mimetype, data: file.buffer.toString('base64') } },
       { text: prompt }
@@ -72,12 +89,13 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 /**
  * Route utama: kirim file index.html
  */
+const PORT = process.env.PORT || 3000;
+app.use(express.static("public"));
+
 app.get("/", (req, res) => {
   res.sendFile("index.html", { root: "public" });
 });
 
-// Jalankan server
-const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`✅ Server running at: http://localhost:${PORT}`);
+  console.log(`✅ Server running on http://localhost:${PORT}`);
 });
