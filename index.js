@@ -7,11 +7,12 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import path from "path";                      
 import { fileURLToPath } from "url";  
 
-// konfigurasi dotenv
-dotenv.config();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// konfigurasi dotenv
+dotenv.config();
+const port = process.env.PORT || 3000;
 
 // inisialisasi express app
 const app = express();
@@ -27,7 +28,7 @@ app.use(express.static(path.join(__dirname, "public")));
  * Inisialisasi koneksi ke Gemini API
  */
 const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
+const model = ai.getGenerativeModel({ model: "gemini-2.5-flash" });
 /**
  * Endpoint: Generate teks dari prompt
  */
@@ -47,7 +48,7 @@ app.post('/api/generate', async (req, res) => {
 
     const result = await model.generateContent(prompt);
 
-    // ambil teks dengan cara aman
+    // ambil teks 
     const text = result?.response?.candidates?.[0]?.content?.parts?.[0]?.text || "Gagal mengambil respons.";
 
     res.json({ output: text });
@@ -122,4 +123,3 @@ app.get("/", (req, res) => {
 app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
 });
-
